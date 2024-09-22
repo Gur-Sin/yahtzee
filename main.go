@@ -11,7 +11,6 @@ import (
 )
 
 var addedFiles []string
-var index int
 
 type model struct {
 	files    []string
@@ -29,6 +28,21 @@ func initialModel() model {
 		files:    addedFiles,
 		selected: make(map[int]struct{}),
 	}
+}
+
+func openFileAsync(file string) {
+	go func() {
+
+		cmd := exec.Command("zathura", file)
+		err := cmd.Start()
+		if err != nil {
+			log.Fatal(err)
+		}
+		err = cmd.Wait()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
 }
 
 func walk(s string, d fs.DirEntry, err error) error {
@@ -90,15 +104,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if ok {
 				delete(m.selected, m.cursor)
 			} else {
-				cmd := exec.Command("zathura", m.files[index])
-				err := cmd.Start()
-				if err != nil {
-					log.Fatal(err)
-				}
-				err = cmd.Wait()
-				if err != nil {
-					log.Fatal(err)
-				}
+				openFileAsync(m.files[m.cursor])
 				m.selected[m.cursor] = struct{}{}
 			}
 		}
@@ -126,8 +132,6 @@ func (m model) View() string {
 		checked := " " // not selected
 		if _, ok := m.selected[i]; ok {
 			checked = "x" // selected!
-			index = i
-			delete(m.selected, m.cursor)
 		}
 
 		// Render the row
@@ -142,7 +146,7 @@ func (m model) View() string {
 }
 
 func main() {
-	filepath.WalkDir("..", walk)
+	filepath.WalkDir("./", walk)
 	p := tea.NewProgram(initialModel())
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Alas, there's been an error: %v", err)
