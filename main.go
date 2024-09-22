@@ -11,7 +11,6 @@ import (
 )
 
 var addedFiles []string
-var index int
 
 type model struct {
 	files    []string
@@ -90,7 +89,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if ok {
 				delete(m.selected, m.cursor)
 			} else {
-				cmd := exec.Command("zathura", m.files[index])
+				cmd := exec.Command("zathura", m.files[m.cursor])
 				err := cmd.Start()
 				if err != nil {
 					log.Fatal(err)
@@ -126,7 +125,6 @@ func (m model) View() string {
 		checked := " " // not selected
 		if _, ok := m.selected[i]; ok {
 			checked = "x" // selected!
-			index = i
 			delete(m.selected, m.cursor)
 		}
 
