@@ -36,8 +36,8 @@ func walk(s string, d fs.DirEntry, err error) error {
 		return err
 	}
 	if !d.IsDir() {
-		// if s == "../yahtzee/applicantImage.pdf" {
-		// 	cmd := exec.Command("zathura", "../yahtzee/applicantImage.pdf")
+		// if s == "../yahtzee/pdf" {
+		// 	cmd := exec.Command("zathura", "../yahtzee/pdf")
 		// 	err := cmd.Start()
 		// 	if err != nil {
 		// 		log.Fatal(err)
