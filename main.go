@@ -109,7 +109,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) View() string {
 	// The header
-	s := "What should we buy at the market?\n\n"
+	s := "What should webuy at the ?\n\n"
 
 	// Iterate over our choices
 	for i, choice := range m.files {
