@@ -2,37 +2,49 @@ package main
 
 import (
 	"fmt"
-	tea "github.com/charmbracelet/bubbletea"
 	"io/fs"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
-)
 
-var addedFiles []string
+	tea "github.com/charmbracelet/bubbletea"
+)
 
 type model struct {
 	files    []string
 	cursor   int
 	selected map[int]struct{}
-}
-
-func (mod model) addFiles(s string) []string {
-	mod.files = append(mod.files, s)
-	return mod.files
+	path     string
 }
 
 func initialModel() model {
 	return model{
-		files:    addedFiles,
 		selected: make(map[int]struct{}),
 	}
 }
 
+func (m *model) loadFile() {
+	var files []string
+	err := filepath.WalkDir(m.path, func(s string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() {
+			files = append(files, s)
+		}
+		return nil
+	})
+	if err != nil {
+		log.Println("Error listing files:", err)
+	}
+
+	m.files = files
+}
+
+// makes openning zathura async
 func openFileAsync(file string) {
 	go func() {
-
 		cmd := exec.Command("zathura", file)
 		err := cmd.Start()
 		if err != nil {
@@ -43,28 +55,6 @@ func openFileAsync(file string) {
 			log.Fatal(err)
 		}
 	}()
-}
-
-func walk(s string, d fs.DirEntry, err error) error {
-	if err != nil {
-		return err
-	}
-	if !d.IsDir() {
-		// if s == "../yahtzee/pdf" {
-		// 	cmd := exec.Command("zathura", "../yahtzee/pdf")
-		// 	err := cmd.Start()
-		// 	if err != nil {
-		// 		log.Fatal(err)
-		// 	}
-		// 	err = cmd.Wait()
-		// 	if err != nil {
-		// 		log.Fatal(err)
-		// 	}
-		// }
-		addedFiles = append(addedFiles, s)
-		// println(s)
-	}
-	return nil
 }
 
 func (m model) Init() tea.Cmd {
@@ -91,15 +81,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.cursor--
 			}
 
+		case "l":
+			m.path = ".."
+			m.loadFile()
+
 		// The "down" and "j" keys move the cursor down
 		case "down", "j":
 			if m.cursor < len(m.files)-1 {
 				m.cursor++
 			}
 
-		// The "enter" key and the spacebar (a literal space) toggle
-		// the selected state for the item that the cursor is pointing at.
-		case "enter", " ":
+			//o to match the same as yazi
+		case "o":
 			_, ok := m.selected[m.cursor]
 			if ok {
 				delete(m.selected, m.cursor)
@@ -146,8 +139,10 @@ func (m model) View() string {
 }
 
 func main() {
-	filepath.WalkDir("./", walk)
-	p := tea.NewProgram(initialModel())
+	model := initialModel()
+	model.path = "."
+	model.loadFile()
+	p := tea.NewProgram(model)
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Alas, there's been an error: %v", err)
 		os.Exit(1)
