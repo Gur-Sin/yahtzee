@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -30,7 +31,10 @@ func (m *model) loadFile() {
 		if err != nil {
 			return err
 		}
-		if !d.IsDir() {
+		if d.IsDir() {
+			s = s + "/"
+		}
+		if !strings.HasPrefix(s, ".") {
 			files = append(files, s)
 		}
 		return nil
@@ -42,7 +46,6 @@ func (m *model) loadFile() {
 	m.files = files
 }
 
-// makes openning zathura async
 func openFileAsync(file string) {
 	go func() {
 		cmd := exec.Command("zathura", file)
@@ -58,40 +61,37 @@ func openFileAsync(file string) {
 }
 
 func (m model) Init() tea.Cmd {
-	// Just return `nil`, which means "no I/O right now, please."
 	return nil
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
-	// Is it a key press?
 	case tea.KeyMsg:
 
-		// Cool, what was the actual key pressed?
 		switch msg.String() {
 
-		// These keys should exit the program.
 		case "ctrl+c", "q":
 			return m, tea.Quit
 
-		// The "up" and "k" keys move the cursor up
 		case "up", "k":
 			if m.cursor > 0 {
 				m.cursor--
 			}
 
-		case "l":
+		case "h":
 			m.path = ".."
 			m.loadFile()
 
-		// The "down" and "j" keys move the cursor down
+		case "l":
+			m.path = m.files[m.cursor]
+			m.loadFile()
+
 		case "down", "j":
 			if m.cursor < len(m.files)-1 {
 				m.cursor++
 			}
 
-			//o to match the same as yazi
 		case "o":
 			_, ok := m.selected[m.cursor]
 			if ok {
@@ -103,44 +103,39 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	// Return the updated model to the Bubble Tea runtime for processing.
-	// Note that we're not returning a command.
 	return m, nil
 }
 
 func (m model) View() string {
-	// The header
 	s := "Select file:\n\n"
 
-	// Iterate over our choices
 	for i, choice := range m.files {
 
-		// Is the cursor pointing at this choice?
-		cursor := " " // no cursor
+		cursor := " "
 		if m.cursor == i {
-			cursor = ">" // cursor!
+			cursor = ">"
 		}
 
-		// Is this choice selected?
-		checked := " " // not selected
+		checked := " "
 		if _, ok := m.selected[i]; ok {
-			checked = "x" // selected!
+			checked = "x"
 		}
 
-		// Render the row
 		s += fmt.Sprintf("%s [%s] %s\n", cursor, checked, choice)
 	}
 
-	// The footer
 	s += "\nPress q to quit.\n"
 
-	// Send the UI for rendering
 	return s
 }
 
 func main() {
 	model := initialModel()
-	model.path = "."
+	path, err := os.Getwd()
+	if err != nil {
+		println(err)
+	}
+	model.path = path
 	model.loadFile()
 	p := tea.NewProgram(model)
 	if _, err := p.Run(); err != nil {
