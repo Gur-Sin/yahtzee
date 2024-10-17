@@ -80,12 +80,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		case "h":
-			m.path = ".."
+			m.files = []string{}
+			splitPath := strings.Split(m.path, "/")
+			splitPath = splitPath[:(len(splitPath) - 1)]
+			m.path = strings.Join(splitPath, "/")
+			print(m.path)
 			m.loadFile()
+			m.cursor = 0
 
 		case "l":
-			m.path = m.files[m.cursor]
+			m.path = filepath.Join(m.files[m.cursor])
 			m.loadFile()
+			m.cursor = 0
 
 		case "down", "j":
 			if m.cursor < len(m.files)-1 {
@@ -116,12 +122,7 @@ func (m model) View() string {
 			cursor = ">"
 		}
 
-		checked := " "
-		if _, ok := m.selected[i]; ok {
-			checked = "x"
-		}
-
-		s += fmt.Sprintf("%s [%s] %s\n", cursor, checked, choice)
+		s += fmt.Sprintf("%s %s\n", cursor, choice)
 	}
 
 	s += "\nPress q to quit.\n"
