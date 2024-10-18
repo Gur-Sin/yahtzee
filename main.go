@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/fs"
 	"log"
 	"os"
 	"os/exec"
@@ -27,22 +26,17 @@ func initialModel() model {
 
 func (m *model) loadFile() {
 	var files []string
-	err := filepath.WalkDir(m.path, func(s string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if d.IsDir() {
-			s = s + "/"
-		}
-		if !strings.HasPrefix(s, ".") {
-			files = append(files, s)
-		}
-		return nil
-	})
+	dir, err := os.ReadDir(m.path)
 	if err != nil {
-		log.Println("Error listing files:", err)
+		log.Printf("Could not read dir because of %v", err)
+		os.Exit(1)
 	}
 
+	for _, s := range dir {
+		if !strings.HasPrefix(s.Name(), ".") {
+			files = append(files, s.Name())
+		}
+	}
 	m.files = files
 }
 
@@ -81,17 +75,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "h":
 			m.files = []string{}
-			splitPath := strings.Split(m.path, "/")
-			splitPath = splitPath[:(len(splitPath) - 1)]
-			m.path = strings.Join(splitPath, "/")
-			print(m.path)
+			m.path = filepath.Dir(m.path)
 			m.loadFile()
 			m.cursor = 0
 
 		case "l":
-			m.path = filepath.Join(m.files[m.cursor])
-			m.loadFile()
-			m.cursor = 0
+			selectedPath := filepath.Join(m.path, m.files[m.cursor])
+			info, err := os.Stat(selectedPath)
+			if err != nil {
+				log.Fatal(err)
+			}
+			if info.IsDir() {
+				m.path = selectedPath
+				m.loadFile()
+				m.cursor = 0
+			}
 
 		case "down", "j":
 			if m.cursor < len(m.files)-1 {
@@ -103,8 +101,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if ok {
 				delete(m.selected, m.cursor)
 			} else {
-				openFileAsync(m.files[m.cursor])
-				m.selected[m.cursor] = struct{}{}
+				info, err := os.Stat(m.files[m.cursor])
+				if err != nil {
+					log.Fatal(err)
+				}
+				if !info.IsDir() {
+					openFileAsync(m.files[m.cursor])
+					m.selected[m.cursor] = struct{}{}
+				}
 			}
 		}
 	}
