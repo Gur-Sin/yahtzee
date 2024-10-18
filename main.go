@@ -33,8 +33,12 @@ func (m *model) loadFile() {
 	}
 
 	for _, s := range dir {
-		if !strings.HasPrefix(s.Name(), ".") {
-			files = append(files, s.Name())
+		fileName := s.Name()
+		if !strings.HasPrefix(fileName, ".") {
+			if s.IsDir() {
+				fileName = s.Name() + "/"
+			}
+			files = append(files, fileName)
 		}
 	}
 	m.files = files
