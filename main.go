@@ -30,7 +30,7 @@ func (m *model) loadFile() {
 	f, err := os.Open(m.path)
 
 	if err != nil {
-		log.Fatal("Error loading files")
+		log.Fatal(err)
 	}
 
 	fileInfo, err := f.ReadDir(-1)
@@ -38,7 +38,7 @@ func (m *model) loadFile() {
 	f.Close()
 
 	if err != nil {
-		log.Fatal("Error loading files")
+		log.Fatal(err)
 	}
 
 	for _, file := range fileInfo {
