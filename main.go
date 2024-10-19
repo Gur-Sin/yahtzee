@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/fs"
 	"log"
 	"os"
 	"os/exec"
@@ -27,20 +26,23 @@ func initialModel() model {
 
 func (m *model) loadFile() {
 	var files []string
-	err := filepath.WalkDir(m.path, func(s string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if d.IsDir() {
-			s = s + "/"
-		}
-		if !strings.HasPrefix(s, ".") {
-			files = append(files, s)
-		}
-		return nil
-	})
+
+	f, err := os.Open(m.path)
+
 	if err != nil {
-		log.Println("Error listing files:", err)
+		log.Fatal("Error loading files")
+	}
+
+	fileInfo, err := f.ReadDir(-1)
+
+	f.Close()
+
+	if err != nil {
+		log.Fatal("Error loading files")
+	}
+
+	for _, file := range fileInfo {
+		files = append(files, file.Name())
 	}
 
 	m.files = files
@@ -80,18 +82,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		case "h":
-			m.files = []string{}
 			splitPath := strings.Split(m.path, "/")
 			splitPath = splitPath[:(len(splitPath) - 1)]
 			m.path = strings.Join(splitPath, "/")
-			print(m.path)
 			m.loadFile()
 			m.cursor = 0
 
 		case "l":
+			m.cursor = 0
 			m.path = filepath.Join(m.files[m.cursor])
 			m.loadFile()
-			m.cursor = 0
 
 		case "down", "j":
 			if m.cursor < len(m.files)-1 {
