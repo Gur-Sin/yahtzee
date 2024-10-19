@@ -89,8 +89,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.cursor = 0
 
 		case "l":
-			m.cursor = 0
-			m.path = filepath.Join(m.files[m.cursor])
+			m.path = filepath.Join(m.path, m.files[m.cursor])
 			m.loadFile()
 
 		case "down", "j":
