@@ -50,7 +50,7 @@ func (m *model) loadFile() {
 
 func openFileAsync(file string) {
 	go func() {
-		cmd := exec.Command("zathura", file)
+		cmd := exec.Command("xdg-open", file)
 		err := cmd.Start()
 		if err != nil {
 			log.Fatal(err)
